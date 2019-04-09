@@ -39,12 +39,12 @@
 #define SERVER_FILES "./serverfiles"
 #define SERVER_ROOT "./serverroot"
 
-// Formats a string in the following format: Mon, 27 Jul 2009 12:28:53 GMT
+// Formats a string in the following format: Mon, 07 Jul 2011 12:28:53 GMT
 char *FORMATSTRING_DATE = "%a, %d %b %Y %X %Z"; 
 char *FORMATSTRING_HTTP_RESPONSE = 
     "%s\n"
-    "content_type: %s\n"
     "Date: %s\n"
+    "content_type: %s\n"
     "Connection: Closed\n"
     "\n"
     "%s";
@@ -66,12 +66,11 @@ int send_response(int fd, char *header, char *content_type, void *body, int cont
     char response[max_response_size];
     // Construct Date String
     char date_string[80];
-    time_t raw_time;
-    struct tm tm;
-    struct tm *info;
-    raw_time = timegm(&tm);
-    info = gmtime(&raw_time);
-    strftime(date_string, 80, FORMATSTRING_DATE, info);
+    time_t utc_time;
+    struct tm *gmt_time_data;
+    time(&utc_time);
+    gmt_time_data = gmtime(&utc_time);
+    strftime(date_string, 80, FORMATSTRING_DATE, gmt_time_data);
     // Construct Full Response
     int response_length = sprintf(
         response,
@@ -96,16 +95,11 @@ int send_response(int fd, char *header, char *content_type, void *body, int cont
 void get_d20(int fd)
 {
     // Generate a random number between 1 and 20 inclusive
-    
-    ///////////////////
-    // IMPLEMENT ME! //
-    ///////////////////
-
+    int result_number = (rand() % 20) + 1;
+    char result_string[3];
+    sprintf(result_string, "%02d", result_number);
     // Use send_response() to send it back as text/plain data
-
-    ///////////////////
-    // IMPLEMENT ME! //
-    ///////////////////
+    send_response(fd, "HTTP/1.1 200 OK", "text/plain", result_string, 3);
 }
 
 /**
@@ -186,10 +180,10 @@ void handle_http_request(int fd, struct cache *cache)
     ///////////////////
 
     // Read the three components of the first request line
-    char *url = "asdf";
+    char *url = "/d20";
     if(0 == strcmp(url, "/d20"))
     {
-        printf("Error 1\n");
+        get_d20(fd);
     }
     else if(0 == strcmp(url, ""))
     {
