@@ -39,12 +39,15 @@
 #define SERVER_FILES "./serverfiles"
 #define SERVER_ROOT "./serverroot"
 
+char *HTTP_SUCCESS = "HTTP/1.1 200 OK";
+char *HTTP_NOT_FOUND = "HTTP/1.1 404 NOT FOUND";
 // Formats a string in the following format: Mon, 07 Jul 2011 12:28:53 GMT
 char *FORMATSTRING_DATE = "%a, %d %b %Y %X %Z"; 
 char *FORMATSTRING_HTTP_RESPONSE = 
     "%s\n"
     "Date: %s\n"
     "content_type: %s\n"
+    "Content-Length: %d\n"
     "Connection: Closed\n"
     "\n"
     "%s";
@@ -61,7 +64,6 @@ char *FORMATSTRING_HTTP_RESPONSE =
  */
 int send_response(int fd, char *header, char *content_type, void *body, int content_length)
 {
-    printf("Send_response\n");
     const int max_response_size = 262144;
     char response[max_response_size];
     // Construct Date String
@@ -78,6 +80,7 @@ int send_response(int fd, char *header, char *content_type, void *body, int cont
         header,
         date_string,
         content_type,
+        content_length,
         body
     );
     // Send it all!
@@ -123,7 +126,7 @@ void resp_404(int fd)
 
     mime_type = mime_type_get(filepath);
     
-    send_response(fd, "HTTP/1.1 404 NOT FOUND", mime_type, filedata->data, filedata->size);
+    send_response(fd, HTTP_NOT_FOUND, mime_type, filedata->data, filedata->size);
 
     file_free(filedata);
 }
@@ -133,9 +136,44 @@ void resp_404(int fd)
  */
 void get_file(int fd, struct cache *cache, char *request_path)
 {
-    ///////////////////
-    // IMPLEMENT ME! //
-    ///////////////////
+    (void)(*cache);
+    // Initialize variables
+    char path_file[2048];
+    char *file_mime_type;
+    FILE *file_requested;
+    struct file_data *file_read_data;
+    struct stat file_stat;
+    int length_path_file;
+    // Construct file path of request url
+    length_path_file = sprintf(path_file, "%s%s", SERVER_ROOT, request_path);
+    // Redirect to index.html for directories
+    stat(path_file, &file_stat);
+    if(S_ISDIR(file_stat.st_mode))
+    {
+        if(path_file[length_path_file-1] != '/')
+        {
+            sprintf(path_file, "%s/", path_file);
+        }
+        sprintf(path_file, "%sindex.html", path_file);
+    }
+    // Open file on disk for reading, handle errors
+    file_requested = fopen(path_file, "r");
+    if(NULL == file_requested)
+    {
+        resp_404(fd);
+        return;
+    }
+    //
+    // Read from file
+    file_read_data = file_load(path_file);
+    // Send response data
+    file_mime_type = mime_type_get(path_file);
+    printf("%s\n", file_read_data->data);
+    send_response(
+        fd, HTTP_SUCCESS, file_mime_type, file_read_data->data, file_read_data->size
+    );
+    // Cleanup
+    file_free(file_read_data);
 }
 
 /**
@@ -146,6 +184,8 @@ void get_file(int fd, struct cache *cache, char *request_path)
  */
 char *find_start_of_body(char *header)
 {
+    (void)(*header);
+    return NULL;
     ///////////////////
     // IMPLEMENT ME! // (Stretch)
     ///////////////////
@@ -156,49 +196,32 @@ char *find_start_of_body(char *header)
  */
 void handle_http_request(int fd, struct cache *cache)
 {
+    (void)(*cache);
+    // Initialize variables
     const int request_buffer_size = 65536; // 64K
-    unsigned char *asdf = "asdf";
     char request[request_buffer_size];
     char method[64];
     char url[1024];
-
     // Read request
     int bytes_recvd = recv(fd, request, request_buffer_size - 1, 0);
-
     if (bytes_recvd < 0) {
         perror("recv");
         return;
     }
-
-
-    ///////////////////
-    // IMPLEMENT ME! //
-    ///////////////////
-
-
     // Read the three components of the first request line
     sscanf(request, "%s %s", method, url);
-    printf("Request:: %s - %s\n", method, url);
-    if(0 == strcmp(url, "/d20"))
-    {
-        get_d20(fd);
-    }
-    else if(0 == strcmp(url, "/"))
-    {
-        printf("Error 2\n");
-    }
-    else
-    {
-        printf("Sending 404\n");
-        resp_404(fd);
-    }
     // If GET, handle the get endpoints
-    
-
-    //    Check if it's /d20 and handle that special case
-    //    Otherwise serve the requested file by calling get_file()
-
-
+    if(0 == strcmp(method, "GET"))
+    {
+        if(0 == strcmp(url, "/d20"))
+        {
+            get_d20(fd);
+        }
+        else
+        {
+            get_file(fd, cache, url);
+        }
+    }
     // (Stretch) If POST, handle the post request
 }
 
