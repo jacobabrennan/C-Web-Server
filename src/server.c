@@ -159,6 +159,8 @@ void handle_http_request(int fd, struct cache *cache)
     const int request_buffer_size = 65536; // 64K
     unsigned char *asdf = "asdf";
     char request[request_buffer_size];
+    char method[64];
+    char url[1024];
 
     // Read request
     int bytes_recvd = recv(fd, request, request_buffer_size - 1, 0);
@@ -168,24 +170,20 @@ void handle_http_request(int fd, struct cache *cache)
         return;
     }
 
-    /*
-    404
-    D20
-    NULL: Directory Index
-    Default: Attempt to load file
 
-    */
     ///////////////////
     // IMPLEMENT ME! //
     ///////////////////
 
+
     // Read the three components of the first request line
-    char *url = "/d20";
+    sscanf(request, "%s %s", method, url);
+    printf("Request:: %s - %s\n", method, url);
     if(0 == strcmp(url, "/d20"))
     {
         get_d20(fd);
     }
-    else if(0 == strcmp(url, ""))
+    else if(0 == strcmp(url, "/"))
     {
         printf("Error 2\n");
     }
@@ -194,7 +192,6 @@ void handle_http_request(int fd, struct cache *cache)
         printf("Sending 404\n");
         resp_404(fd);
     }
-    return;
     // If GET, handle the get endpoints
     
 
