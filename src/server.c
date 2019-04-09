@@ -39,6 +39,17 @@
 #define SERVER_FILES "./serverfiles"
 #define SERVER_ROOT "./serverroot"
 
+// Formats a string in the following format: Mon, 27 Jul 2009 12:28:53 GMT
+char *FORMATSTRING_DATE = "%a, %d %b %Y %X %Z"; 
+char *FORMATSTRING_HTTP_RESPONSE = 
+    "%s\n"
+    "content_type: %s\n"
+    "Date: %s\n"
+    "Connection: Closed\n"
+    "\n"
+    "%s";
+
+
 /**
  * Send an HTTP response
  *
@@ -50,22 +61,31 @@
  */
 int send_response(int fd, char *header, char *content_type, void *body, int content_length)
 {
+    printf("Send_response\n");
     const int max_response_size = 262144;
     char response[max_response_size];
-
-    // Build HTTP response and store it in response
-
-    ///////////////////
-    // IMPLEMENT ME! //
-    ///////////////////
-
+    // Construct Date String
+    char date_string[80];
+    time_t raw_time;
+    struct tm tm;
+    struct tm *info;
+    raw_time = timegm(&tm);
+    info = gmtime(&raw_time);
+    strftime(date_string, 80, FORMATSTRING_DATE, info);
+    // Construct Full Response
+    int response_length = sprintf(
+        response,
+        FORMATSTRING_HTTP_RESPONSE,
+        header,
+        date_string,
+        content_type,
+        body
+    );
     // Send it all!
     int rv = send(fd, response, response_length, 0);
-
     if (rv < 0) {
         perror("send");
     }
-
     return rv;
 }
 
@@ -108,7 +128,7 @@ void resp_404(int fd)
     }
 
     mime_type = mime_type_get(filepath);
-
+    
     send_response(fd, "HTTP/1.1 404 NOT FOUND", mime_type, filedata->data, filedata->size);
 
     file_free(filedata);
@@ -143,6 +163,7 @@ char *find_start_of_body(char *header)
 void handle_http_request(int fd, struct cache *cache)
 {
     const int request_buffer_size = 65536; // 64K
+    unsigned char *asdf = "asdf";
     char request[request_buffer_size];
 
     // Read request
@@ -153,14 +174,35 @@ void handle_http_request(int fd, struct cache *cache)
         return;
     }
 
+    /*
+    404
+    D20
+    NULL: Directory Index
+    Default: Attempt to load file
 
+    */
     ///////////////////
     // IMPLEMENT ME! //
     ///////////////////
 
     // Read the three components of the first request line
-
+    char *url = "asdf";
+    if(0 == strcmp(url, "/d20"))
+    {
+        printf("Error 1\n");
+    }
+    else if(0 == strcmp(url, ""))
+    {
+        printf("Error 2\n");
+    }
+    else
+    {
+        printf("Sending 404\n");
+        resp_404(fd);
+    }
+    return;
     // If GET, handle the get endpoints
+    
 
     //    Check if it's /d20 and handle that special case
     //    Otherwise serve the requested file by calling get_file()
