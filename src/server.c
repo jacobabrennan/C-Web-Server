@@ -46,11 +46,10 @@ char *FORMATSTRING_DATE = "%a, %d %b %Y %X %Z";
 char *FORMATSTRING_HTTP_RESPONSE = 
     "%s\n"
     "Date: %s\n"
-    "content_type: %s\n"
+    "Content-Type: %s\n"
     "Content-Length: %d\n"
     "Connection: Closed\n"
-    "\n"
-    "%s";
+    "\n";
 
 
 /**
@@ -73,18 +72,22 @@ int send_response(int fd, char *header, char *content_type, void *body, int cont
     time(&utc_time);
     gmt_time_data = gmtime(&utc_time);
     strftime(date_string, 80, FORMATSTRING_DATE, gmt_time_data);
-    // Construct Full Response
-    int response_length = sprintf(
+    // Construct Response Header
+    int header_length = sprintf(
         response,
         FORMATSTRING_HTTP_RESPONSE,
         header,
         date_string,
         content_type,
-        content_length,
-        body
+        content_length
     );
     // Send it all!
-    int rv = send(fd, response, response_length, 0);
+    int rv;
+    rv = send(fd, response, header_length, 0);
+    if (rv < 0) {
+        perror("send");
+    }
+    rv = send(fd, body, content_length, 0);
     if (rv < 0) {
         perror("send");
     }
@@ -163,12 +166,10 @@ void get_file(int fd, struct cache *cache, char *request_path)
         resp_404(fd);
         return;
     }
-    //
     // Read from file
     file_read_data = file_load(path_file);
     // Send response data
     file_mime_type = mime_type_get(path_file);
-    printf("%s\n", file_read_data->data);
     send_response(
         fd, HTTP_SUCCESS, file_mime_type, file_read_data->data, file_read_data->size
     );
