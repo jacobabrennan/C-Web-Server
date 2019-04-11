@@ -14,6 +14,8 @@ struct cache_entry *alloc_entry(char *path, char *content_type, void *content, i
     entry_new->content_type = strdup(content_type);
     entry_new->content_length = content_length;
     entry_new->content = malloc(content_length);
+    entry_new->next = NULL;
+    entry_new->prev = NULL;
     memcpy(entry_new->content, content, content_length);
     return entry_new;
 }
@@ -96,9 +98,12 @@ struct cache_entry *dllist_remove_tail(struct cache *cache)
  */
 struct cache *cache_create(int max_size, int hashsize)
 {
-    ///////////////////
-    // IMPLEMENT ME! //
-    ///////////////////
+    struct cache *cache_new = malloc(sizeof(struct cache));
+    cache_new->index = hashtable_create(hashsize, NULL);
+    cache_new->head = NULL;
+    cache_new->tail = NULL;
+    cache_new->max_size = max_size;
+    cache_new->cur_size = 0;
 }
 
 void cache_free(struct cache *cache)
