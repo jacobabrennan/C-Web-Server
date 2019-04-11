@@ -139,7 +139,19 @@ void resp_404(int fd)
  */
 void get_file(int fd, struct cache *cache, char *request_path)
 {
-    (void)(*cache);
+    // Check Cache
+    struct cache_entry *entry_stored = cache_get(cache, request_path);
+    if(entry_stored)
+    {
+        send_response(
+            fd,
+            HTTP_SUCCESS,
+            entry_stored->content_type,
+            entry_stored->content,
+            entry_stored->content_length
+        );
+        return;
+    }
     // Initialize variables
     char path_file[2048];
     char *file_mime_type;
@@ -172,6 +184,14 @@ void get_file(int fd, struct cache *cache, char *request_path)
     file_mime_type = mime_type_get(path_file);
     send_response(
         fd, HTTP_SUCCESS, file_mime_type, file_read_data->data, file_read_data->size
+    );
+    // Store In Cache
+    cache_put(
+        cache,
+        request_path,
+        file_mime_type,
+        file_read_data->data,
+        file_read_data->size
     );
     // Cleanup
     file_free(file_read_data);
